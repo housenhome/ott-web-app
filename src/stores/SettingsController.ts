@@ -1,11 +1,14 @@
 import ini from 'ini';
 
 import { Settings, useSettingsStore } from '#src/stores/SettingsStore';
-import { logDev } from '#src/utils/common';
+import { IS_PREVIEW_MODE, IS_PRODUCTION_MODE, logDev } from '#src/utils/common';
 import { OTT_GLOBAL_PLAYER_ID } from '#src/config';
 
 export const initSettings = async () => {
-  const settings = await fetch('/.webapp.ini')
+  // If in production/preview, use the config file without the dot -- for Firebase hosting
+  const configFilePath = IS_PRODUCTION_MODE || IS_PREVIEW_MODE ? '/webapp.ini' : '/.webapp.ini';
+
+  const settings = await fetch(configFilePath)
     .then((result) => result.text())
     .then((iniString) => ini.parse(iniString) as Settings)
     .catch((e) => {
@@ -15,7 +18,7 @@ export const initSettings = async () => {
     });
 
   if (!settings) {
-    throw new Error('Unable to load .webapp.ini');
+    throw new Error(`Unable to load ${configFilePath}`);
   }
 
   // The ini file values will be used if provided, even if compile-time values are set
