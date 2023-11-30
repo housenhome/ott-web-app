@@ -19,8 +19,7 @@ firebase-debug.log
 # ignore local files
 *.local
 
-# Exclude ini files because they have customer specific data
-ini/*.ini
+
 
 # Ignore working area for i18n checks
 .temp-translations
