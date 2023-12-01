@@ -62,17 +62,31 @@ export default {
       securityCode: 'adyen-checkout__field--securityCode',
     },
   },
+  customRegFields: {
+    topContainerSelector: 'div[data-testid="custom-reg-fields"]',
+    termsAndConditionsField: 'input[type="checkbox"][name="terms"]',
+    crfTextInput: '[data-testid="crf-input"]',
+    crfCheckbox: '[data-testid="crf-checkbox"]',
+    crfCountrySelect: '[data-testid="crf-country"]',
+    crfUsStateSelect: '[data-testid="crf-us_state"]',
+    crfDropdownSelect: '[data-testid="crf-select"]',
+    crfRadioBox: '[data-testid="crf-radio"]',
+    crfDateField: '[data-testid="crf-datepicker"]',
+  },
   offers: {
     monthlyOffer: {
       cleeng: {
         label: `label[for="S970187168_NL"]`,
         price: formatPrice(6.99, 'EUR', 'NL'),
         paymentFee: formatPrice(0, 'EUR', 'NL'),
+        // Cleeng considers next payment price to be 0 in case 100% coupon is applied
+        couponNextPayment: formatPrice(0, 'EUR', 'NL'),
       },
       inplayer: {
         label: `label[for="S38279"]`,
         price: formatPrice(6.99, 'EUR'),
         paymentFee: formatPrice(0, 'EUR'),
+        couponNextPayment: formatPrice(50, 'EUR'),
       },
     },
     yearlyOffer: {
@@ -80,11 +94,14 @@ export default {
         label: `label[for="S467691538_NL"]`,
         price: formatPrice(50, 'EUR', 'NL'),
         paymentFee: formatPrice(0, 'EUR', 'NL'),
+        // Cleeng considers next payment price to be 0 in case 100% coupon is applied
+        couponNextPayment: formatPrice(0, 'EUR', 'NL'),
       },
       inplayer: {
         label: `label[for="S38280"]`,
         price: formatPrice(50, 'EUR'),
         paymentFee: formatPrice(0, 'EUR'),
+        couponNextPayment: formatPrice(50, 'EUR'),
       },
     },
   },

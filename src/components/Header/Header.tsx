@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 
 import styles from './Header.module.scss';
 
-import AccountCircle from '#src/icons/AccountCircle';
 import SearchBar, { Props as SearchBarProps } from '#components/SearchBar/SearchBar';
 import Logo from '#components/Logo/Logo';
 import Menu from '#src/icons/Menu';
@@ -19,6 +18,9 @@ import Language from '#src/icons/Language';
 import LanguageMenu from '#components/LanguageMenu/LanguageMenu';
 import type { LanguageDefinition } from '#src/i18n/config';
 import Panel from '#components/Panel/Panel';
+import type { Profile } from '#types/account';
+import ProfileCircle from '#src/icons/ProfileCircle';
+import AccountCircle from '#src/icons/AccountCircle';
 
 type TypeHeader = 'static' | 'fixed';
 
@@ -46,6 +48,16 @@ type Props = {
   supportedLanguages: LanguageDefinition[];
   currentLanguage: LanguageDefinition | undefined;
   onLanguageClick: (code: string) => void;
+
+  favoritesEnabled?: boolean;
+
+  profilesData?: {
+    currentProfile: Profile | null;
+    profiles: Profile[];
+    profilesEnabled: boolean;
+    selectProfile: ({ avatarUrl, id }: { avatarUrl: string; id: string }) => void;
+    isSelectingProfile: boolean;
+  };
 };
 
 const Header: React.FC<Props> = ({
@@ -72,6 +84,8 @@ const Header: React.FC<Props> = ({
   supportedLanguages,
   currentLanguage,
   onLanguageClick,
+  favoritesEnabled,
+  profilesData: { currentProfile, profiles, profilesEnabled, selectProfile, isSelectingProfile } = {},
 }) => {
   const { t } = useTranslation('menu');
   const [logoLoaded, setLogoLoaded] = useState(false);
@@ -79,6 +93,7 @@ const Header: React.FC<Props> = ({
   const headerClassName = classNames(styles.header, styles[headerType], {
     [styles.searchActive]: searchActive,
   });
+
   // only show the language dropdown when there are other languages to choose from
   const showLanguageSwitcher = supportedLanguages.length > 1;
 
@@ -121,11 +136,25 @@ const Header: React.FC<Props> = ({
     return isLoggedIn ? (
       <React.Fragment>
         <IconButton className={classNames(styles.iconButton, styles.actionButton)} aria-label={t('open_user_menu')} onClick={openUserMenu}>
-          <AccountCircle />
+          {profilesEnabled && currentProfile ? (
+            <ProfileCircle src={currentProfile.avatar_url} alt={currentProfile.name || t('profile_icon')} />
+          ) : (
+            <AccountCircle />
+          )}
         </IconButton>
         <Popover isOpen={userMenuOpen} onClose={closeUserMenu}>
           <Panel>
-            <UserMenu onClick={closeUserMenu} showPaymentsItem={showPaymentsMenuItem} small />
+            <UserMenu
+              onClick={closeUserMenu}
+              showPaymentsItem={showPaymentsMenuItem}
+              small
+              currentProfile={currentProfile}
+              profilesEnabled={profilesEnabled}
+              profiles={profiles}
+              selectProfile={selectProfile}
+              isSelectingProfile={!!isSelectingProfile}
+              favoritesEnabled={favoritesEnabled}
+            />
           </Panel>
         </Popover>
       </React.Fragment>

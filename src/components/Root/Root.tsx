@@ -1,91 +1,75 @@
-import React, { FC, useEffect, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useQuery } from 'react-query';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import React, { FC, useEffect, useState } from 'react';
 
 import ErrorPage from '#components/ErrorPage/ErrorPage';
 import AccountModal from '#src/containers/AccountModal/AccountModal';
-import { IS_DEMO_MODE, IS_DEVELOPMENT_BUILD, IS_PREVIEW_MODE } from '#src/utils/common';
+import { IS_DEMO_MODE, IS_DEVELOPMENT_BUILD, IS_PREVIEW_MODE, IS_PROD_MODE } from '#src/utils/common';
 import DemoConfigDialog from '#components/DemoConfigDialog/DemoConfigDialog';
-import LoadingOverlay from '#components/LoadingOverlay/LoadingOverlay';
 import DevConfigSelector from '#components/DevConfigSelector/DevConfigSelector';
-import { cleanupQueryParams, getConfigSource } from '#src/utils/configOverride';
-import { loadAndValidateConfig } from '#src/utils/configLoad';
-import { initSettings } from '#src/stores/SettingsController';
 import AppRoutes from '#src/containers/AppRoutes/AppRoutes';
 import registerCustomScreens from '#src/screenMapping';
-import { useAccountStore } from '#src/stores/AccountStore';
+import LoadingOverlay from '#components/LoadingOverlay/LoadingOverlay';
+import { useBootstrapApp, type BootstrapData } from '#src/hooks/useBootstrapApp';
+
+const IS_DEMO_OR_PREVIEW = IS_DEMO_MODE || IS_PREVIEW_MODE;
+
+const ProdContentLoader = ({ query }: { query: BootstrapData }) => {
+  const { isLoading, error } = query;
+
+  if (isLoading) {
+    return <LoadingOverlay />;
+  }
+
+  if (error) {
+    return <ErrorPage title={error.payload.title} message={error.payload.description} helpLink={error.payload.helpLink} />;
+  }
+
+  return null;
+};
+
+const DemoContentLoader = ({ query }: { query: BootstrapData }) => {
+  const { isLoading, error, data } = query;
+
+  // Show the spinner while loading except in demo mode (the demo config shows its own loading status)
+  if (!IS_DEMO_OR_PREVIEW && isLoading) {
+    return <LoadingOverlay />;
+  }
+
+  const { configSource, settings } = data || {};
+
+  return (
+    <>
+      {/*Show the error page when error except in demo mode (the demo mode shows its own error)*/}
+      {!IS_DEMO_OR_PREVIEW && error && (
+        <ErrorPage title={error?.payload?.title} message={error?.payload?.description} error={error} helpLink={error?.payload?.helpLink} />
+      )}
+      {IS_DEMO_OR_PREVIEW && settings && <DemoConfigDialog query={query} />}
+      {/* Config select control to improve testing experience */}
+      {(IS_DEVELOPMENT_BUILD || IS_PREVIEW_MODE) && settings && <DevConfigSelector selectedConfig={configSource} />}
+    </>
+  );
+};
+
+// This is moved to a separate, parallel component to reduce rerenders
+const RootLoader = ({ onReady }: { onReady: () => void }) => {
+  const query = useBootstrapApp(onReady);
+
+  return IS_PROD_MODE ? <ProdContentLoader query={query} /> : <DemoContentLoader query={query} />;
+};
 
 const Root: FC = () => {
-  const { t } = useTranslation('error');
-  const settingsQuery = useQuery('settings-init', initSettings, {
-    enabled: true,
-    retry: 1,
-    refetchInterval: false,
-  });
-
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const configSource = useMemo(() => getConfigSource(searchParams, settingsQuery.data), [searchParams, settingsQuery.data]);
-
-  // Update the query string to maintain the right params
-  useEffect(() => {
-    if (settingsQuery.data && cleanupQueryParams(searchParams, settingsQuery.data, configSource)) {
-      setSearchParams(searchParams, { replace: true });
-    }
-  }, [configSource, searchParams, setSearchParams, settingsQuery.data]);
-
-  const configQuery = useQuery('config-init-' + configSource, async () => await loadAndValidateConfig(configSource), {
-    enabled: settingsQuery.isSuccess,
-    retry: configSource ? 1 : 0,
-    refetchInterval: false,
-  });
+  const [isReady, setIsReady] = useState(false);
 
   // Register custom screen mappings
   useEffect(() => {
     registerCustomScreens();
   }, []);
 
-  const userData = useAccountStore((s) => ({ loading: s.loading, user: s.user }));
-
-  if (userData.user && !userData.loading && window.location.href.includes('#token')) {
-    return <Navigate to="/" />; // component instead of hook to prevent extra re-renders
-  }
-
-  const IS_DEMO_OR_PREVIEW = IS_DEMO_MODE || IS_PREVIEW_MODE;
-
-  // Show the spinner while loading except in demo mode (the demo config shows its own loading status)
-  if (settingsQuery.isLoading || (!IS_DEMO_OR_PREVIEW && configQuery.isLoading)) {
-    return <LoadingOverlay />;
-  }
-
-  if (settingsQuery.isError) {
-    return (
-      <ErrorPage
-        title={t('settings_invalid')}
-        message={t('check_your_settings')}
-        error={settingsQuery.error as Error}
-        helpLink={'https://github.com/jwplayer/ott-web-app/blob/develop/docs/initialization-file.md'}
-      />
-    );
-  }
-
   return (
     <>
-      {!configQuery.isError && !configQuery.isLoading && configQuery.data && <AppRoutes />}
-      {/*Show the error page when error except in demo mode (the demo mode shows its own error)*/}
-      {configQuery.isError && !IS_DEMO_OR_PREVIEW && (
-        <ErrorPage
-          title={t('config_invalid')}
-          message={t('check_your_config')}
-          error={configQuery.error as Error}
-          helpLink={'https://github.com/jwplayer/ott-web-app/blob/develop/docs/configuration.md'}
-        />
-      )}
-      {IS_DEMO_OR_PREVIEW && <DemoConfigDialog selectedConfigSource={configSource} configQuery={configQuery} />}
-      <AccountModal />
-      {/* Config select control to improve testing experience */}
-      {(IS_DEVELOPMENT_BUILD || IS_PREVIEW_MODE) && <DevConfigSelector selectedConfig={configSource} />}
+      {isReady && <AppRoutes />}
+      {isReady && <AccountModal />}
+      {/*This is moved to a separate, parallel component to reduce rerenders */}
+      <RootLoader onReady={() => setIsReady(true)} />
     </>
   );
 };

@@ -111,8 +111,9 @@ exports[`User Component tests > Account Page 1`] = `
             account.about_you
           </h3>
         </div>
-        <div
+        <form
           class="_flexBox_1c1c63"
+          novalidate=""
         >
           <div
             class="_textField_e16c1b"
@@ -140,7 +141,7 @@ exports[`User Component tests > Account Page 1`] = `
               Person
             </p>
           </div>
-        </div>
+        </form>
         <div
           class="_controls_1c1c63"
         >
@@ -164,8 +165,9 @@ exports[`User Component tests > Account Page 1`] = `
             account.email
           </h3>
         </div>
-        <div
+        <form
           class="_flexBox_1c1c63"
+          novalidate=""
         >
           <div
             class="_textField_e16c1b"
@@ -180,7 +182,7 @@ exports[`User Component tests > Account Page 1`] = `
               user@jwplayer.com
             </p>
           </div>
-        </div>
+        </form>
         <div
           class="_controls_1c1c63"
         />
@@ -195,8 +197,9 @@ exports[`User Component tests > Account Page 1`] = `
             account.security
           </h3>
         </div>
-        <div
+        <form
           class="_flexBox_1c1c63"
+          novalidate=""
         />
         <div
           class="_controls_1c1c63"
@@ -221,8 +224,9 @@ exports[`User Component tests > Account Page 1`] = `
             account.terms_and_tracking
           </h3>
         </div>
-        <div
+        <form
           class="_flexBox_1c1c63"
+          novalidate=""
         />
         <div
           class="_controls_1c1c63"
@@ -388,10 +392,10 @@ exports[`User Component tests > Favorites Page 1`] = `
               <div
                 role="cell"
               >
-                <div
-                  aria-label="play_item"
+                <a
+                  aria-label="Fav 1"
                   class="_card_d75732"
-                  role="button"
+                  href="/m/aaabbbcc/fav-1?r=abcdffff"
                   tabindex="0"
                 >
                   <div
@@ -420,7 +424,7 @@ exports[`User Component tests > Favorites Page 1`] = `
                       Fav 1
                     </div>
                   </div>
-                </div>
+                </a>
               </div>
             </div>
             <div
@@ -430,10 +434,10 @@ exports[`User Component tests > Favorites Page 1`] = `
               <div
                 role="cell"
               >
-                <div
-                  aria-label="play_item"
+                <a
+                  aria-label="Big Buck Bunny"
                   class="_card_d75732"
-                  role="button"
+                  href="/m/aaabbbcd/big-buck-bunny?r=bbbdddff"
                   tabindex="0"
                 >
                   <div
@@ -462,7 +466,7 @@ exports[`User Component tests > Favorites Page 1`] = `
                       Big Buck Bunny
                     </div>
                   </div>
-                </div>
+                </a>
               </div>
             </div>
             <div
@@ -472,10 +476,10 @@ exports[`User Component tests > Favorites Page 1`] = `
               <div
                 role="cell"
               >
-                <div
-                  aria-label="play_item"
+                <a
+                  aria-label="My last favorite"
                   class="_card_d75732"
-                  role="button"
+                  href="/m/ggaaccvv/my-last-favorite?r=bbbbbbbb"
                   tabindex="0"
                 >
                   <div
@@ -504,7 +508,7 @@ exports[`User Component tests > Favorites Page 1`] = `
                       My last favorite
                     </div>
                   </div>
-                </div>
+                </a>
               </div>
             </div>
           </div>

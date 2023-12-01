@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import shallow from 'zustand/shallow';
 
 import styles from './User.module.scss';
@@ -17,15 +17,22 @@ import AccountCircle from '#src/icons/AccountCircle';
 import BalanceWallet from '#src/icons/BalanceWallet';
 import Exit from '#src/icons/Exit';
 import Favorite from '#src/icons/Favorite';
-import { logout } from '#src/stores/AccountController';
 import { useAccountStore } from '#src/stores/AccountStore';
-import { getSubscriptionSwitches } from '#src/stores/CheckoutController';
-import { PersonalShelf, useConfigStore } from '#src/stores/ConfigStore';
-import { clear as clearFavorites } from '#src/stores/FavoritesController';
-import { mediaURL } from '#src/utils/formatting';
-import type { PlaylistItem } from '#types/playlist';
+import { useConfigStore } from '#src/stores/ConfigStore';
+import { ACCESS_MODEL, PersonalShelf } from '#src/config';
+import FavoritesController from '#src/stores/FavoritesController';
+import AccountController from '#src/stores/AccountController';
+import CheckoutController from '#src/stores/CheckoutController';
+import EditProfile from '#src/containers/Profiles/EditProfile';
+import { useProfileStore } from '#src/stores/ProfileStore';
+import { useProfiles } from '#src/hooks/useProfiles';
+import { getModule } from '#src/modules/container';
 
 const User = (): JSX.Element => {
+  const favoritesController = getModule(FavoritesController);
+  const accountController = getModule(AccountController);
+  const checkoutController = getModule(CheckoutController);
+
   const { accessModel, favoritesList } = useConfigStore(
     (s) => ({
       accessModel: s.accessModel,
@@ -37,21 +44,27 @@ const User = (): JSX.Element => {
   const { t } = useTranslation('user');
   const breakpoint = useBreakpoint();
   const [clearFavoritesOpen, setClearFavoritesOpen] = useState(false);
+  const location = useLocation();
 
   const isLargeScreen = breakpoint > Breakpoint.md;
-  const { user: customer, subscription, loading, canUpdateEmail } = useAccountStore();
+  const { user: customer, subscription, loading } = useAccountStore();
+  const { canUpdateEmail, canRenewSubscription } = accountController.getFeatures();
+  const { profile } = useProfileStore();
 
-  const onCardClick = (playlistItem: PlaylistItem) => navigate(mediaURL({ media: playlistItem }));
+  const { profilesEnabled } = useProfiles();
+
+  const profileAndFavoritesPage = location.pathname?.includes('my-profile') || location.pathname.includes('favorites');
+
   const onLogout = useCallback(async () => {
     // Empty customer on a user page leads to navigate (code bellow), so we don't repeat it here
-    await logout();
-  }, []);
+    await accountController.logout();
+  }, [accountController]);
 
   useEffect(() => {
-    if (accessModel !== 'AVOD') {
-      getSubscriptionSwitches();
+    if (accessModel !== ACCESS_MODEL.AVOD && canRenewSubscription) {
+      checkoutController.getSubscriptionSwitches();
     }
-  }, [accessModel]);
+  }, [accessModel, checkoutController, canRenewSubscription]);
 
   useEffect(() => {
     if (!loading && !customer) {
@@ -73,22 +86,39 @@ const User = (): JSX.Element => {
         <div className={styles.leftColumn}>
           <div className={styles.panel}>
             <ul>
-              <li>
-                <Button to="my-account" label={t('nav.account')} variant="text" startIcon={<AccountCircle />} className={styles.button} />
-              </li>
-              {favoritesList && (
+              {accessModel === 'SVOD' && profilesEnabled && profileAndFavoritesPage && (
+                <li>
+                  <Button
+                    to={`my-profile/${profile?.id}`}
+                    label={profile?.name ?? t('nav.profile')}
+                    variant="text"
+                    startIcon={<img className={styles.profileIcon} src={profile?.avatar_url} alt={profile?.name} />}
+                    className={styles.button}
+                  />
+                </li>
+              )}
+              {(!profilesEnabled || !profileAndFavoritesPage) && (
+                <li>
+                  <Button to="my-account" label={t('nav.account')} variant="text" startIcon={<AccountCircle />} className={styles.button} />
+                </li>
+              )}
+              {favoritesList && (!profilesEnabled || profileAndFavoritesPage) && (
                 <li>
                   <Button to="favorites" label={t('nav.favorites')} variant="text" startIcon={<Favorite />} className={styles.button} />
                 </li>
               )}
-              {accessModel !== 'AVOD' && (
+
+              {accessModel !== ACCESS_MODEL.AVOD && (!profilesEnabled || !profileAndFavoritesPage) && (
                 <li>
                   <Button to="payments" label={t('nav.payments')} variant="text" startIcon={<BalanceWallet />} className={styles.button} />
                 </li>
               )}
-              <li className={styles.logoutLi}>
-                <Button onClick={onLogout} label={t('nav.logout')} variant="text" startIcon={<Exit />} className={styles.button} />
-              </li>
+
+              {(!profilesEnabled || !profileAndFavoritesPage) && (
+                <li className={styles.logoutLi}>
+                  <Button onClick={onLogout} label={t('nav.logout')} variant="text" startIcon={<Exit />} className={styles.button} />
+                </li>
+              )}
             </ul>
           </div>
         </div>
@@ -99,6 +129,7 @@ const User = (): JSX.Element => {
             path="my-account"
             element={<AccountComponent panelClassName={styles.panel} panelHeaderClassName={styles.panelHeader} canUpdateEmail={canUpdateEmail} />}
           />
+          {profilesEnabled && <Route path="my-profile/:id" element={<EditProfile contained />} />}
           {favoritesList && (
             <Route
               path="favorites"
@@ -110,7 +141,6 @@ const User = (): JSX.Element => {
                         playlist={playlist}
                         error={error}
                         isLoading={isLoading}
-                        onCardClick={onCardClick}
                         onClearFavoritesClick={() => setClearFavoritesOpen(true)}
                         accessModel={accessModel}
                         hasSubscription={!!subscription}
@@ -122,7 +152,7 @@ const User = (): JSX.Element => {
                     title={t('favorites.clear_favorites_title')}
                     body={t('favorites.clear_favorites_body')}
                     onConfirm={async () => {
-                      await clearFavorites();
+                      await favoritesController.clear();
                       setClearFavoritesOpen(false);
                     }}
                     onClose={() => setClearFavoritesOpen(false)}
@@ -131,7 +161,7 @@ const User = (): JSX.Element => {
               }
             />
           )}
-          <Route path="payments" element={accessModel !== 'AVOD' ? <PaymentContainer /> : <Navigate to="my-account" />} />
+          <Route path="payments" element={accessModel !== ACCESS_MODEL.AVOD ? <PaymentContainer /> : <Navigate to="my-account" />} />
           <Route path="*" element={<Navigate to="my-account" />} />
         </Routes>
       </div>
