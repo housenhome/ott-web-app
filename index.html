@@ -48,7 +48,7 @@
     ];
     const domain = params.get('domain') && allowedDomains.indexOf(params.get('domain')) >= 0 ? params.get('domain') : allowedDomains[0];
     const version = (params.get('v') * 1) || (new Date()).getTime()
-    const stylesheet = `www//${domain}/wp-content/themes/new-theme/dist/assets/styles.css?v=${version}`
+    const stylesheet = `//${domain}/wp-content/themes/new-theme/dist/assets/styles.css?v=${version}`
 
     var head = document.head;
     
